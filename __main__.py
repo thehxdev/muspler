@@ -3,7 +3,11 @@ import logging
 import ffmpeg
 import random as rand
 import config as conf
-from telegram import Update, Message, Bot
+from telegram import (
+    Update,
+    Message,
+    Bot
+)
 from telegram.ext import (
     filters,
     MessageHandler,
