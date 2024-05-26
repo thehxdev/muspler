@@ -108,6 +108,8 @@ async def resample_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     msg = update.effective_message.reply_to_message
     if msg is None:
+        msg = 'Please reply to an audio file'
+        await context.bot.send_message(chat_id=chat_id, text=msg)
         return
     await create_sample(bot, msg, chat_id)
 
