@@ -37,8 +37,12 @@ logging.basicConfig(
 
 async def ffmpeg_make_sample(input_path: str,
                              output_path:str,
-                             duration: int) -> None:
-    start = (0) if duration == 0 else rand.randint(0, duration - SAMPLE_DURATION) 
+                             duration: int,
+                             from_sec: int = -1) -> None:
+    if from_sec > 0:
+        start = from_sec
+    else:
+        start = (0) if duration == 0 else rand.randint(0, duration - SAMPLE_DURATION) 
     audio_input = ffmpeg.input(input_path)
     audio_cut = audio_input.audio.filter('atrim', start=start, end=start + SAMPLE_DURATION)
     audio_output = ffmpeg.output(audio_cut,
@@ -54,7 +58,10 @@ def remove_file(path: str) -> None:
 
 
 
-async def create_sample(bot: Bot, msg: Message, chat_id: int):
+async def create_sample(bot: Bot,
+                        msg: Message,
+                        chat_id: int,
+                        from_sec: int = -1):
     if msg.audio is None:
         await msg.reply_text(text='Given message does not contain an audio file',
                              reply_to_message_id=msg.id)
@@ -75,7 +82,7 @@ async def create_sample(bot: Bot, msg: Message, chat_id: int):
                                     message_id=m.id,
                                     text='Trimig audio file...')
 
-        await ffmpeg_make_sample(input_path, output_path, msg.audio.duration)
+        await ffmpeg_make_sample(input_path, output_path, msg.audio.duration, from_sec)
 
         await bot.edit_message_text(chat_id=chat_id,
                                     message_id=m.id,
@@ -114,6 +121,21 @@ async def resample_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await create_sample(bot, msg, chat_id)
 
 
+async def resample_from_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    bot = context.bot
+    chat_id = update.effective_chat.id
+    msg = update.effective_message.reply_to_message
+    try:
+        from_sec = int(context.args[0])
+    except:
+        await context.bot.send_message(chat_id=chat_id, text='Invalid command argument. Argument must be a positive number')
+        return
+    if msg is None:
+        msg = 'Please reply to an audio file'
+        await context.bot.send_message(chat_id=chat_id, text=msg)
+        return
+    await create_sample(bot, msg, chat_id, from_sec)
+
 
 async def audio_sample_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
@@ -121,7 +143,6 @@ async def audio_sample_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     msg = update.effective_message
     if msg is None:
         return
-
     await create_sample(bot, msg, chat_id)
 
 
@@ -131,6 +152,7 @@ if __name__ == '__main__':
 
     application.add_handler(CommandHandler('start', start_handler))
     application.add_handler(CommandHandler('resample', resample_handler))
+    application.add_handler(CommandHandler('from', resample_from_handler))
 
     application.add_handler(MessageHandler(filters.AUDIO & (~filters.COMMAND),
                                            audio_sample_handler, block=False))
