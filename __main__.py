@@ -51,11 +51,9 @@ async def ffmpeg_make_sample(input_path: str,
     ffmpeg.run(audio_output, quiet=True)
 
 
-
 def remove_file(path: str) -> None:
     if (os.path.exists(path)):
         os.remove(path)
-
 
 
 async def create_sample(bot: Bot,
@@ -93,7 +91,8 @@ async def create_sample(bot: Bot,
                               caption=msg.audio.title)
 
         await m.delete()
-    except:
+    except Exception as e:
+        logging.error(e)
         await bot.edit_message_text(chat_id=chat_id,
                                     message_id=m.id,
                                     text='Creating sample failed!')
@@ -107,7 +106,6 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg: str = 'This bot can make samples from your music and audio files!\nJust send me an audio file.'
     chat_id: int = update.effective_chat.id
     await context.bot.send_message(chat_id=chat_id, text=msg)
-
 
 
 async def resample_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,8 +144,11 @@ async def audio_sample_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     await create_sample(bot, msg, chat_id)
 
 
-
 if __name__ == '__main__':
+    if not os.path.exists(DIR_PREFIX):
+        logging.info(f"{DIR_PREFIX} does not exist. creating directory...")
+        os.mkdir(DIR_PREFIX)
+
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler('start', start_handler))
